@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r osmdata load}
+library(osmdata)
+library(tidyverse)
+# create a bbbox
+bbx <- getbb("Chicago, IL")
+
+# change the names
+colnames(bbx) <- c("min","max")
+rownames(bbx) <- c("lon", "lat")
+
+#bbx etc.
+min_lon <- bbx["lon","min"]; max_lon <- bbx["lon","max"]
+min_lat <- bbx["lat","min"]; max_lat <- bbx["lat","max"]
+
+#get the roads
+highways <- bbx %>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value=c("motorway", "trunk",
+                          "primary","secondary", 
+                          "tertiary","motorway_link",
+                          "trunk_link","primary_link",
+                          "secondary_link",
+                          "tertiary_link")) %>%
+  osmdata_sf()
+
+# let's get an initial plot
+
+require(sf)
+ggplot() +
+  geom_sf(data = highways$osm_lines,
+          aes(color=highway),
+          size = .4,
+          alpha = .65)+
+  theme_void()
+
+# get some mas streets
+
+streets <- bbx %>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = c("residential", "living_street",
+                            "service","unclassified",
+                            "pedestrian", "footway",
+                            "track","path")) %>%
+  osmdata_sf()
+
+```
+
+```{r osm plot}
+
+# plot of all of the streets
+
+ggplot() +
+  geom_sf(data = streets$osm_lines,
+          aes(color=highway),
+          size = .4,
+          alpha = .65)+
+  theme_void()
+
+# gray and balck
+
+color_roads <- rgb(0.42,0.449,0.488)
+ggplot() +
+  geom_sf(data = streets$osm_lines,
+          col = color_roads,
+          size = .4,
+          alpha = .65) +
+  geom_sf(data = highways$osm_lines,
+          col = color_roads,
+          size = .6,
+          alpha = .8)+
+  coord_sf(xlim = c(min_lon,max_lon),
+           ylim = c(min_lat,max_lat),
+         expand = FALSE)+
+  theme(legend.position = F) + theme_void()
+
+```
+
+```{r tigris and osm}
+
+require(tigris)
+counties <- counties(state="IL",cb=T,class="sf",)
+counties <- st_crop(counties,
+                       xmin=min_lon,xmax=max_lon,
+                       ymin=min_lat,ymax=max_lat)
+ggplot() + 
+  geom_sf(data=counties_MA,fill="gray",lwd=0)+
+  coord_sf(xlim = c(min(bbx[1,]), max(bbx[1,])), 
+         ylim = c(min(bbx[2,]), max(bbx[2,])),
+         expand = FALSE)+
+  theme(legend.position = F) + theme_void()
+  
+get_water <- function(county_GEOID){
+  area_water("MA", county_GEOID, class = "sf")
+}
+water <- do.call(rbind, 
+                 lapply(counties$COUNTYFP,get_water))
+water <- st_crop(water,
+                 xmin=min_lon,xmax=max_lon,
+                 ymin=min_lat,ymax=max_lat)
+
+ggplot() + 
+  geom_sf(data=counties_MA)+
+  geom_sf(data=water,
+          inherit.aes = F,
+          col="red")+
+  coord_sf(xlim = c(min(bbx[1,]), max(bbx[1,])), 
+         ylim = c(min(bbx[2,]), max(bbx[2,])),
+         expand = FALSE)+
+  theme(legend.position = F) + theme_void()
+
+st_erase <- function(x, y) {
+  st_difference(x, st_union(y))
+}
+counties <- st_erase(counties,water)
+
+ggplot() + 
+  geom_sf(data=counties_MA,
+          lwd=0)+
+  coord_sf(xlim = c(min(bbx[1,]), max(bbx[1,])), 
+         ylim = c(min(bbx[2,]), max(bbx[2,])),
+         expand = FALSE)+
+  theme(legend.position = F) + theme_void()
+```
