@@ -6,6 +6,7 @@ output: html_notebook
 ```{r osmdata load}
 library(osmdata)
 library(tidyverse)
+
 # create a bbbox
 bbx <- getbb("Chicago, IL")
 
