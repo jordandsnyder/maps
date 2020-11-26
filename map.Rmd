@@ -53,6 +53,8 @@ streets <- bbx %>%
 
 ```
 
+
+
 ```{r osm plot}
 
 # plot of all of the streets
@@ -91,7 +93,7 @@ counties <- st_crop(counties,
                        xmin=min_lon,xmax=max_lon,
                        ymin=min_lat,ymax=max_lat)
 ggplot() + 
-  geom_sf(data=counties_MA,fill="gray",lwd=0)+
+  geom_sf(data=counties,fill="gray",lwd=0)+
   coord_sf(xlim = c(min(bbx[1,]), max(bbx[1,])), 
          ylim = c(min(bbx[2,]), max(bbx[2,])),
          expand = FALSE)+
@@ -107,7 +109,7 @@ water <- st_crop(water,
                  ymin=min_lat,ymax=max_lat)
 
 ggplot() + 
-  geom_sf(data=counties_MA)+
+  geom_sf(data=counties)+
   geom_sf(data=water,
           inherit.aes = F,
           col="red")+
@@ -122,7 +124,7 @@ st_erase <- function(x, y) {
 counties <- st_erase(counties,water)
 
 ggplot() + 
-  geom_sf(data=counties_MA,
+  geom_sf(data=counties,
           lwd=0)+
   coord_sf(xlim = c(min(bbx[1,]), max(bbx[1,])), 
          ylim = c(min(bbx[2,]), max(bbx[2,])),
